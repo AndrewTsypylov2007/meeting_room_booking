@@ -1,0 +1,36 @@
+# Временные файлы компиляции Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Окружение и кэш Poetry
+.venv/
+venv/
+ENV/
+.poetry/
+poetry.lock.cache
+
+# Кэш тестов Pytest
+.pytest_cache/
+.cache/
+.anyio_cache/
+
+# Локальные базы данных и файлы SQLite
+*.sqlite3
+*.db
+test_db.sqlite3
+prod_db.sqlite3
+
+# Секретные ключи и переменные окружения
+.env
+.env.*
+secrets.json
+
+# Системные файлы операционных систем
+.DS_Store
+Thumbs.db
+
+# Логи uvicorn и контейнеров
+*.log
+logs/

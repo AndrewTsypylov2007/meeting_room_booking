@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Панель управления коворкингом</title>
+    <script src="https://tailwindcss.com"></script>
+    <link href="https://googleapis.com" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-[#fafafa] text-[#171717] antialiased">
+
+    <!-- Современный минималистичный Хедер -->
+    <header class="bg-white border-b border-neutral-200 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto h-16 px-6 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-neutral-900 rounded-lg flex items-center justify-center text-white text-base">🏢</div>
+                <div>
+                    <h1 class="text-sm font-bold tracking-tight text-neutral-900">ШИФТ Коворкинг</h1>
+                    <p class="text-[11px] text-neutral-400 font-medium">Система бронирования переговорных залов</p>
+                </div>
+            </div>
+            <div id="user-badge" class="hidden items-center gap-3 bg-neutral-50 border border-neutral-200 py-1 px-3 rounded-full">
+                <span id="badge-email" class="text-xs font-medium text-neutral-600"></span>
+                <button onclick="logout()" class="text-xs font-bold text-red-500 hover:text-red-600 border-l border-neutral-200 pl-3 transition">Выйти</button>
+            </div>
+        </div>
+    </header>
+    <main class="max-w-6xl mx-auto px-6 py-8 grid grid-cols-1 md:grid-cols-12 gap-8">
+        
+        <!-- Левая колонка: Профиль / Вход -->
+        <div class="md:col-span-4 space-y-6">
+            
+            <div id="auth-card" class="bg-white p-6 rounded-xl border border-neutral-200 shadow-sm">
+                <div class="flex bg-neutral-100 p-1 rounded-lg mb-6">
+                    <button id="btn-tab-login" onclick="toggleAuthTab('login')" class="w-1/2 py-1.5 text-xs font-medium rounded-md bg-white text-neutral-900 shadow-sm transition">Вход</button>
+                    <button id="btn-tab-reg" onclick="toggleAuthTab('reg')" class="w-1/2 py-1.5 text-xs font-medium rounded-md text-neutral-400 hover:text-neutral-900 transition">Регистрация</button>
+                </div>
+
+                <!-- Вход -->
+                <form id="form-login" onsubmit="handleAuth(event, 'login')" class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Рабочий Email</label>
+                        <input type="email" id="login-email" required class="w-full h-10 px-3 border border-neutral-200 rounded-lg text-sm bg-neutral-50/50 focus:outline-none focus:border-neutral-900 transition" placeholder="name@company.com">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Пароль</label>
+                        <input type="password" id="login-pass" required class="w-full h-10 px-3 border border-neutral-200 rounded-lg text-sm bg-neutral-50/50 focus:outline-none focus:border-neutral-900 transition" placeholder="••••••••">
+                    </div>
+                    <button type="submit" class="w-full h-10 bg-neutral-900 hover:bg-neutral-800 text-white font-medium text-xs rounded-lg transition">Войти в кабинет</button>
+                </form>
+
+                <!-- Регистрация -->
+                <form id="form-register" onsubmit="handleAuth(event, 'reg')" class="space-y-4 hidden">
+                    <div>
+                        <label class="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Новый Email</label>
+                        <input type="email" id="reg-email" required class="w-full h-10 px-3 border border-neutral-200 rounded-lg text-sm bg-neutral-50/50 focus:outline-none focus:border-neutral-900 transition" placeholder="employee@company.com">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Пароль (от 6 символов)</label>
+                        <input type="password" id="reg-pass" required class="w-full h-10 px-3 border border-neutral-200 rounded-lg text-sm bg-neutral-50/50 focus:outline-none focus:border-neutral-900 transition" placeholder="••••••••">
+                    </div>
+                    <button type="submit" class="w-full h-10 bg-neutral-900 hover:bg-neutral-800 text-white font-medium text-xs rounded-lg transition">Создать аккаунт</button>
+                </form>
+            </div>
+
+            <div id="profile-card" class="hidden bg-white p-6 rounded-xl border border-neutral-200 shadow-sm space-y-3">
+                <div class="flex items-center gap-3 pb-3 border-b border-neutral-100">
+                    <div class="w-8 h-8 rounded-lg bg-neutral-100 flex items-center justify-center text-sm">👤</div>
+                    <div>
+                        <h4 class="text-xs font-bold text-neutral-800">Личный кабинет</h4>
+                        <p id="profile-role" class="text-[10px] uppercase font-bold tracking-wider text-neutral-400">Сотрудник</p>
+                    </div>
+                </div>
+                <p class="text-xs text-neutral-400 leading-relaxed">Для бронирования залов выберите нужную дату в календаре справа и нажмите на любой свободный временной интервал.</p>
+            </div>
+        </div>
+
+        <!-- Правая колонка: Сетка расписания -->
+        <div class="md:col-span-8 space-y-6">
+            <div class="bg-white p-6 rounded-xl border border-neutral-200 shadow-sm">
+                
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-neutral-100 mb-6">
+                    <div>
+                        <h3 class="text-sm font-bold text-neutral-900">Интерактивное расписание</h3>
+                        <p class="text-xs text-neutral-400">График доступности залов коворкинга</p>
+                    </div>
+                    <input type="date" id="main-calendar" class="h-9 border border-neutral-200 px-3 rounded-lg text-xs font-medium text-neutral-700 bg-neutral-50/50 focus:outline-none transition cursor-pointer">
+                </div>
+
+                <div id="grid-container" class="space-y-6">
+                    <div class="flex flex-col items-center justify-center py-16 text-center">
+                        <span class="text-2xl mb-2">🔒</span>
+                        <h4 class="text-xs font-bold text-neutral-700 mb-1">Доступ ограничен</h4>
+                        <p class="text-xs text-neutral-400 max-w-xs">Пожалуйста, войдите в личный кабинет, чтобы открыть интерактивную сетку занятости комнат.</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+    <script>
+        let token = localStorage.getItem('token');
+        let userEmail = localStorage.getItem('userEmail');
+        const calendar = document.getElementById('main-calendar');
+        calendar.value = new Date().toISOString().split('T')[0];
+        calendar.addEventListener('change', fetchBookingGrid);
+
+        function toggleAuthTab(mode) {
+            const isLogin = mode === 'login';
+            document.getElementById('form-login').classList.toggle('hidden', !isLogin);
+            document.getElementById('form-register').classList.toggle('hidden', isLogin);
+            document.getElementById('btn-tab-login').className = isLogin ? "w-1/2 py-1.5 text-xs font-medium rounded-md bg-white text-neutral-900 shadow-sm" : "w-1/2 py-1.5 text-xs font-medium rounded-md text-neutral-400";
+            document.getElementById('btn-tab-reg').className = !isLogin ? "w-1/2 py-1.5 text-xs font-medium rounded-md bg-white text-neutral-900 shadow-sm" : "w-1/2 py-1.5 text-xs font-medium rounded-md text-neutral-400";
+        }
+
+        async function handleAuth(event, type) {
+            event.preventDefault();
+            if (type === 'reg') {
+                const email = document.getElementById('reg-email').value;
+                const password = document.getElementById('reg-pass').value;
+                const res = await fetch('/api/v1/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email, password: password })
+                });
+                if (res.ok) {
+                    alert('Регистрация успешна!');
+                    document.getElementById('login-email').value = email;
+                    document.getElementById('login-pass').value = password;
+                    toggleAuthTab('login');
+                } else {
+                    const err = await res.json();
+                    alert(err.detail || 'Пароль должен быть от 6 символов');
+                    return;
+                }
+            }
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-pass').value;
+            const bodyData = new FormData();
+            bodyData.append('username', email);
+            bodyData.append('password', password);
+            const loginRes = await fetch('/api/v1/auth/login', { method: 'POST', body: bodyData });
+            if (loginRes.ok) {
+                const data = await loginRes.json();
+                localStorage.setItem('token', data.access_token);
+                localStorage.setItem('userEmail', email);
+                token = data.access_token; userEmail = email;
+                renderSessionUI();
+            } else { alert('Неверный email или пароль.'); }
+        }
+
+        async function fetchBookingGrid() {
+            if (!token) return;
+            const res = await fetch(`/api/v1/bookings/rooms?target_date=${calendar.value}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const container = document.getElementById('grid-container');
+            if (res.ok) {
+                const rooms = await res.json();
+                container.innerHTML = '';
+                if (rooms.length === 0) {
+                    container.innerHTML = '<p class="text-center text-xs text-neutral-400 py-12">Комнат пока нет.</p>';
+                    return;
+                }
+                rooms.forEach(room => {
+                    let slotsHtml = '';
+                    room.slots.forEach(slot => {
+                        const isFree = slot.is_free;
+                        const start = String(slot.start_time).substring(0,5);
+                        const end = String(slot.end_time).substring(0,5);
+
+                        if (isFree) {
+                            // Свободно: сочный зеленый цвет
+                            slotsHtml += `
+                                <button onclick="executeBooking(${room.id}, ${slot.id})" 
+                                        style="background-color: #e6f9ed; color: #137333; border: 1px solid #b7e1cd;" 
+                                        class="text-xs font-bold py-2 px-3 rounded-lg flex flex-col items-center justify-center h-12 shadow-sm transition-all cursor-pointer">
+                                    <span>${start} - ${end}</span>
+                                    <span class="text-[9px] uppercase tracking-wider opacity-80">Свободно</span>
+                                </button>
+                            `;
+                        } else {
+                            // Занято: принудительный КРАСНЫЙ фон с темно-красным текстом
+                            slotsHtml += `
+                                <button onclick="cancelBooking(${slot.id})" 
+                                        style="background-color: #fde8e8; color: #9b1c1c; border: 1px solid #f8b4b4;" 
+                                        class="text-xs font-medium py-2 px-3 rounded-lg flex flex-col items-center justify-center h-12 shadow-sm transition-all group hover:bg-red-600 hover:text-white hover:border-red-700 cursor-pointer">
+                                    <span class="font-bold group-hover:hidden">${start} - ${end}</span>
+                                    <span class="text-[9px] uppercase tracking-wider group-hover:hidden opacity-75">Занято</span>
+                                    <span class="hidden group-hover:inline text-xs font-bold">✕ Снять бронь</span>
+                                </button>
+                            `;
+                        }
+                    });
+                    container.innerHTML += `<div class="border border-neutral-100 p-5 rounded-xl bg-neutral-50/30"><h4 class="font-bold text-xs text-neutral-800 flex items-center gap-1.5">🚪 ${room.name}</h4><p class="text-[11px] text-neutral-400 mb-4">${room.description || ''}</p><div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">${slotsHtml}</div></div>`;
+                });
+            } else {
+                container.innerHTML = `<p class="text-center text-xs text-red-500 py-12">Внутренняя ошибка сервера (Код ${res.status}).</p>`;
+            }
+        }
+
+        async function executeBooking(roomId, slotId) {
+            const res = await fetch('/api/v1/bookings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ room_id: roomId, slot_id: slotId, date: calendar.value })
+            });
+            
+            if (res.ok) { 
+                alert('Успешно забронировано!'); 
+                await fetchBookingGrid(); 
+            } else { 
+                const err = await res.json(); 
+                alert('Ошибка: ' + (err.detail || 'Не удалось выполнить бронирование')); 
+            }
+        }
+
+
+        function renderSessionUI() {
+            const authCard = document.getElementById('auth-card');
+            const profileCard = document.getElementById('profile-card');
+            const userBadge = document.getElementById('user-badge');
+            const badgeEmail = document.getElementById('badge-email');
+            const profileRole = document.getElementById('profile-role');
+            if (token) {
+                if (authCard) authCard.style.display = 'none';
+                if (profileCard) profileCard.style.display = 'block';
+                if (userBadge) { userBadge.style.display = 'flex'; userBadge.classList.remove('hidden'); }
+                if (badgeEmail) badgeEmail.innerText = userEmail;
+                if (profileRole) {
+                    const isAsAdmin = userEmail.includes('admin');
+                    profileRole.innerText = isAsAdmin ? 'Администратор системы' : 'Сотрудник коворкинга';
+                    profileRole.className = isAsAdmin ? 'text-[10px] uppercase font-bold tracking-wider text-red-500' : 'text-[10px] uppercase font-bold tracking-wider text-neutral-400';
+                }
+                fetchBookingGrid();
+            } else {
+                if (authCard) authCard.style.display = 'block';
+                if (profileCard) profileCard.style.display = 'none';
+                if (userBadge) userBadge.style.display = 'none';
+                document.getElementById('grid-container').innerHTML = `<div class="flex flex-col items-center justify-center py-16 text-center"><span class="text-2xl mb-2">🔒</span><h4 class="text-xs font-bold text-neutral-700 mb-1">Доступ ограничен</h4><p class="text-xs text-neutral-400 max-w-xs">Пожалуйста, войдите в личный кабинет.</p></div>`;
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token'); localStorage.removeItem('userEmail');
+            token = null; userEmail = null; renderSessionUI();
+        }
+        renderSessionUI();
+                async function cancelBooking(slotId) {
+            if (!confirm('Вы действительно хотите отменить это бронирование?')) return;
+
+            // Сначала нам нужно узнать ID бронирования для этого слота. 
+            // Отправим запрос на бэкенд удаления. Наш роутер принимает booking_id.
+            // Чтобы не усложнять фронтенд поиском ID, мы передаем slotId в наш эндпоинт.
+            const res = await fetch(`/api/v1/bookings/${slotId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (res.ok) {
+                alert('Бронирование успешно отменено!');
+                fetchBookingGrid();
+            } else {
+                const err = await res.json();
+                alert('Ошибка отмены: ' + (err.detail || 'Доступ запрещен. Вы можете отменять только свои бронирования.'));
+            }
+        }
+    </script>
+</body>
+</html>
